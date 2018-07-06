@@ -1,1 +1,1 @@
-# barbershop [![Build Status](https://travis-ci.org/meetup/barbershop.svg?branch=master)](https://travis-ci.org/meetup/barbershop)
+# barbershop [![Build Status](https://travis-ci.com/meetup/barbershop.svg?branch=master)](https://travis-ci.com/meetup/barbershop)
