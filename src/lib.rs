@@ -11,8 +11,7 @@ extern crate hex;
 
 // Third party
 use crypto::hmac::Hmac;
-use crypto::mac::Mac;
-use crypto::mac::MacResult;
+use crypto::mac::{Mac, MacResult};
 use crypto::sha1::Sha1;
 use hex::FromHex;
 use lando::RequestExt;
@@ -25,6 +24,7 @@ struct Config {
     github_webhook_secret: String,
 }
 
+/// Return true if webhook was authenticated, false otherwise
 fn authenticated(request: &lando::Request, secret: &String) -> bool {
     request
         .headers()
@@ -41,6 +41,7 @@ fn authenticated(request: &lando::Request, secret: &String) -> bool {
         })
 }
 
+#[cfg_attr(tarpaulin, skip)]
 gateway!(|request, _| {
     let config = envy::from_env::<Config>()?;
     if authenticated(&request, &config.github_webhook_secret) {
@@ -53,3 +54,16 @@ gateway!(|request, _| {
 
     Ok(lando::Response::new(()))
 });
+
+#[cfg(test)]
+mod tests {
+    use super::{authenticated, lando};
+
+    #[test]
+    fn missing_header_is_authenticated() {
+        assert!(!authenticated(
+            &lando::Request::new("{}".into()),
+            &"secret".to_string()
+        ))
+    }
+}

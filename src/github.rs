@@ -24,7 +24,7 @@ pub struct Ref {
   pub branch: String,
 }
 
-// https://developer.github.com/v3/git/refs/#delete-a-reference
+//// https://developer.github.com/v3/git/refs/#delete-a-reference
 pub fn delete(token: &String, url: &String) -> Option<()> {
   Client::new()
     .expect("failed to create client")
