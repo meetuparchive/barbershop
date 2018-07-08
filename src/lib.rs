@@ -9,9 +9,6 @@ extern crate serde_derive;
 extern crate envy;
 extern crate hex;
 
-// Std
-use std::time::{SystemTime, UNIX_EPOCH};
-
 // Third party
 use crypto::hmac::Hmac;
 use crypto::mac::{Mac, MacResult};
