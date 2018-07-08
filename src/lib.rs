@@ -20,6 +20,7 @@ use hex::FromHex;
 use lando::RequestExt;
 
 mod github;
+mod metric;
 
 #[derive(Deserialize)]
 struct Config {
@@ -27,26 +28,19 @@ struct Config {
     github_webhook_secret: String,
 }
 
-pub fn incr(metric_name: &str, tags: Vec<String>) -> Option<String> {
-    SystemTime::now().duration_since(UNIX_EPOCH).ok().map(|d| {
-        format!(
-            "MONITORING|{timestamp}|{value}|count|{metric_name}|#{tags}",
-            timestamp = d.as_secs(),
-            value = 1,
-            metric_name = metric_name,
-            tags = tags.join(",")
-        )
-    })
+fn header<'a>(request: &'a lando::Request, name: &str) -> Option<&'a str> {
+    request
+        .headers()
+        .get(name)
+        .and_then(|value| value.to_str().ok())
 }
 
 /// Return true if webhook was authenticated, false otherwise
 fn authenticated(request: &lando::Request, secret: &String) -> bool {
-    request
-        .headers()
-        .get("X-Hub-Signature")
+    header(request, "X-Hub-Signature")
         .and_then(|value| {
             // strip off `sha1=` and get hex bytes
-            Vec::from_hex(value.to_str().expect("invalid header")[5..].as_bytes()).ok()
+            Vec::from_hex(value[5..].as_bytes()).ok()
         })
         .iter()
         .any(|signature| {
@@ -56,33 +50,51 @@ fn authenticated(request: &lando::Request, secret: &String) -> bool {
         })
 }
 
+fn incr_trim(repo: &String, branch: &String) -> Option<String> {
+    metric::incr(
+        "barbershop.trim",
+        vec![format!("repo:{}", repo), format!("branch:{}", branch)],
+    )
+}
+
+fn incr_auth_fail() -> Option<String> {
+    metric::incr(
+        "barbershop.fail",
+        vec!["reason:invalid_authentication".into()],
+    )
+}
+
+fn incr_trim_fail(reason: &String, repo: &String, branch: &String) -> Option<String> {
+    metric::incr(
+        "barbershop.fail",
+        vec![
+            format!("repo:{}", repo),
+            format!("branch:{}", branch),
+            format!("reason:{}", reason),
+        ],
+    )
+}
+
 #[cfg_attr(tarpaulin, skip)]
 gateway!(|request, _| {
     let config = envy::from_env::<Config>()?;
     if authenticated(&request, &config.github_webhook_secret) {
         if let Ok(Some(payload)) = request.payload::<github::Payload>() {
             if payload.deletable() {
-                println!("deleting {}", payload.ref_url());
                 match github::delete(&config.github_token.clone(), &payload.ref_url()) {
                     Err(e) => {
-                        for metric in incr(
-                            "barbershop.fail",
-                            vec![
-                                format!("reason:{}", e),
-                                format!("repo:{}", payload.pull_request.head.repo.full_name),
-                                format!("branch:{}", payload.pull_request.head.branch),
-                            ],
+                        for metric in incr_trim_fail(
+                            &e.to_string(),
+                            &payload.pull_request.head.repo.full_name,
+                            &payload.pull_request.head.branch,
                         ) {
                             println!("{}", metric);
                         }
                     }
                     Ok(_) => {
-                        for metric in incr(
-                            "barbershop.trim",
-                            vec![
-                                format!("repo:{}", payload.pull_request.head.repo.full_name),
-                                format!("branch:{}", payload.pull_request.head.branch),
-                            ],
+                        for metric in incr_trim(
+                            &payload.pull_request.head.repo.full_name,
+                            &payload.pull_request.head.branch,
                         ) {
                             println!("{}", metric);
                         }
@@ -91,10 +103,7 @@ gateway!(|request, _| {
             }
         }
     } else {
-        for metric in incr(
-            "barbershop.fail",
-            vec!["reason:invalid_authentication".into()],
-        ) {
+        for metric in incr_auth_fail() {
             println!("{}", metric);
         }
     }

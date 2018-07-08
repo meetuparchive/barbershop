@@ -70,17 +70,52 @@ pub fn delete(token: &String, url: &String) -> Result<(), Error> {
 mod tests {
   use super::Payload;
   use lando::{Request, RequestExt};
+
+  const OPENED: &str = include_str!("../data/opened.json");
+  const CLOSED: &str = include_str!("../data/closed.json");
+
   #[test]
-  fn parse_payload() {
-    let mut req = Request::new(include_str!("../data/payload.json").into());
-    req.headers_mut().insert(
+  fn extracts_ref_url() {
+    let mut opened = Request::new(OPENED.into());
+    opened.headers_mut().insert(
       "Content-Type",
       "application/json".parse().expect("invalid header value"),
     );
-    let payload = req
+    let payload = opened
       .payload::<Payload>()
       .expect("unable to parse payload")
       .expect("expected some body");
-    assert_eq!(payload.action, "closed");
+    assert_eq!(
+      payload.ref_url(),
+      "https://api.github.com/repos/Codertocat/Hello-World/git/refs/heads/changes"
+    );
+  }
+
+  #[test]
+  fn closed_is_deletable() {
+    let mut opened = Request::new(CLOSED.into());
+    opened.headers_mut().insert(
+      "Content-Type",
+      "application/json".parse().expect("invalid header value"),
+    );
+    let payload = opened
+      .payload::<Payload>()
+      .expect("unable to parse payload")
+      .expect("expected some body");
+    assert!(payload.deletable());
+  }
+
+  #[test]
+  fn opened_is_not_deltable() {
+    let mut opened = Request::new(OPENED.into());
+    opened.headers_mut().insert(
+      "Content-Type",
+      "application/json".parse().expect("invalid header value"),
+    );
+    let payload = opened
+      .payload::<Payload>()
+      .expect("unable to parse payload")
+      .expect("expected some body");
+    assert!(!payload.deletable());
   }
 }
