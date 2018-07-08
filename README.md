@@ -19,7 +19,7 @@ github webhook.
 - [ ] Select Content type `application/json`
 - [ ] Enter this lambda's webhook secret
 - [ ] Select `Let me select individual events`
--- [ ] Select `Pull Requests`
+  - [ ] Select `Pull Requests`
 
 Click `Add webook`
 
