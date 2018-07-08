@@ -20,8 +20,7 @@ github webhook.
 - [ ] Enter this lambda's webhook secret
 - [ ] Select `Let me select individual events`
   - [ ] Select `Pull Requests`
-
-Click `Add webook`
+- [ ] Click `Add webook`
 
 ## 👩‍🏭 development
 
