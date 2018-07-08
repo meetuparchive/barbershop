@@ -1,4 +1,4 @@
-# barbershop [![Build Status](https://travis-ci.com/meetup/barbershop.svg?branch=master)](https://travis-ci.com/meetup/barbershop) [![Coverage Status](https://coveralls.io/repos/github/meetup/barbershop/badge.svg?branch=master)](https://coveralls.io/github/meetup/barbershop?branch=master)
+# barbershop [![Build Status](https://travis-ci.org/meetup/barbershop.svg?branch=master)](https://travis-ci.org/meetup/barbershop) [![Coverage Status](https://coveralls.io/repos/github/meetup/barbershop/badge.svg?branch=master)](https://coveralls.io/github/meetup/barbershop?branch=master)
 
 > trims a little of the top and sides of your github repository after pull request merges
 
