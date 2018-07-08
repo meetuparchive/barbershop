@@ -1,11 +1,32 @@
 // Third party
-use reqwest::Client;
+use reqwest::{Client, Error};
 
+/// Pull request review payload
+///
+/// See Github's [docs](https://developer.github.com/v3/activity/events/types/#pullrequestevent)
+/// for more information
 #[derive(Deserialize, Debug)]
 pub struct Payload {
   pub action: String,
   pub number: usize,
   pub pull_request: PullRequest,
+}
+
+impl Payload {
+  /// Return `true` if pull request was closed,
+  /// regardless of pull request merge status
+  pub fn deletable(&self) -> bool {
+    "closed" == self.action
+  }
+
+  /// Return full url of
+  pub fn ref_url(&self) -> String {
+    format!(
+      "{repo_url}/git/refs/heads/{ref_name}",
+      repo_url = self.pull_request.head.repo.url,
+      ref_name = self.pull_request.head.branch
+    )
+  }
 }
 
 #[derive(Deserialize, Debug)]
@@ -16,16 +37,26 @@ pub struct PullRequest {
   pub state: String,
   pub body: Option<String>,
   pub head: Ref,
+  pub merged: bool,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Ref {
   #[serde(rename = "ref")]
   pub branch: String,
+  pub repo: Repository,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Repository {
+  /// api url for repo
+  pub url: String,
+  /// {owner}/{repo}
+  pub full_name: String,
 }
 
 //// https://developer.github.com/v3/git/refs/#delete-a-reference
-pub fn delete(token: &String, url: &String) -> Option<()> {
+pub fn delete(token: &String, url: &String) -> Result<(), Error> {
   Client::new()
     .expect("failed to create client")
     .delete(url)
@@ -33,5 +64,23 @@ pub fn delete(token: &String, url: &String) -> Option<()> {
     .basic_auth("", Some(token.clone()))
     .send()
     .map(|_| ())
-    .ok()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::Payload;
+  use lando::{Request, RequestExt};
+  #[test]
+  fn parse_payload() {
+    let mut req = Request::new(include_str!("../data/payload.json").into());
+    req.headers_mut().insert(
+      "Content-Type",
+      "application/json".parse().expect("invalid header value"),
+    );
+    let payload = req
+      .payload::<Payload>()
+      .expect("unable to parse payload")
+      .expect("expected some body");
+    assert_eq!(payload.action, "closed");
+  }
 }

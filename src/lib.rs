@@ -59,10 +59,36 @@ fn authenticated(request: &lando::Request, secret: &String) -> bool {
 #[cfg_attr(tarpaulin, skip)]
 gateway!(|request, _| {
     let config = envy::from_env::<Config>()?;
-    println!("{}", ::std::str::from_utf8(&request.body())?);
     if authenticated(&request, &config.github_webhook_secret) {
         if let Ok(Some(payload)) = request.payload::<github::Payload>() {
-            println!("{:?}", payload);
+            if payload.deletable() {
+                println!("deleting {}", payload.ref_url());
+                match github::delete(&config.github_token.clone(), &payload.ref_url()) {
+                    Err(e) => {
+                        for metric in incr(
+                            "barbershop.fail",
+                            vec![
+                                format!("reason:{}", e),
+                                format!("repo:{}", payload.pull_request.head.repo.full_name),
+                                format!("branch:{}", payload.pull_request.head.branch),
+                            ],
+                        ) {
+                            println!("{}", metric);
+                        }
+                    }
+                    Ok(_) => {
+                        for metric in incr(
+                            "barbershop.trim",
+                            vec![
+                                format!("repo:{}", payload.pull_request.head.repo.full_name),
+                                format!("branch:{}", payload.pull_request.head.branch),
+                            ],
+                        ) {
+                            println!("{}", metric);
+                        }
+                    }
+                }
+            }
         }
     } else {
         for metric in incr(
@@ -71,7 +97,6 @@ gateway!(|request, _| {
         ) {
             println!("{}", metric);
         }
-        eprintln!("recieved unauthenticated request");
     }
 
     Ok(lando::Response::new(()))
