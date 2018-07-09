@@ -81,6 +81,7 @@ gateway!(|request, _| {
         }
         return Ok(Response::builder().status(401).body(())?);
     }
+
     match request.payload::<github::Payload>() {
         Ok(Some(ref payload)) if payload.deletable() => {
             if let Err(e) = github::delete(&config.github_token.clone(), &payload.ref_url()) {

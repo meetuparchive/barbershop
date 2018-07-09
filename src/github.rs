@@ -76,12 +76,12 @@ mod tests {
 
   #[test]
   fn extracts_ref_url() {
-    let mut opened = Request::new(OPENED.into());
-    opened.headers_mut().insert(
+    let mut req = Request::new(OPENED.into());
+    req.headers_mut().insert(
       "Content-Type",
       "application/json".parse().expect("invalid header value"),
     );
-    let payload = opened
+    let payload = req
       .payload::<Payload>()
       .expect("unable to parse payload")
       .expect("expected some body");
@@ -93,12 +93,12 @@ mod tests {
 
   #[test]
   fn closed_is_deletable() {
-    let mut opened = Request::new(CLOSED.into());
-    opened.headers_mut().insert(
+    let mut req = Request::new(CLOSED.into());
+    req.headers_mut().insert(
       "Content-Type",
       "application/json".parse().expect("invalid header value"),
     );
-    let payload = opened
+    let payload = req
       .payload::<Payload>()
       .expect("unable to parse payload")
       .expect("expected some body");
@@ -107,12 +107,12 @@ mod tests {
 
   #[test]
   fn opened_is_not_deltable() {
-    let mut opened = Request::new(OPENED.into());
-    opened.headers_mut().insert(
+    let mut req = Request::new(OPENED.into());
+    req.headers_mut().insert(
       "Content-Type",
       "application/json".parse().expect("invalid header value"),
     );
-    let payload = opened
+    let payload = req
       .payload::<Payload>()
       .expect("unable to parse payload")
       .expect("expected some body");
