@@ -31,7 +31,6 @@ impl Payload {
 
 #[derive(Deserialize, Debug)]
 pub struct PullRequest {
-  pub url: String,
   pub head: Ref,
   pub merged: bool,
 }
