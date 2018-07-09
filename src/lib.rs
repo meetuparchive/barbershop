@@ -14,7 +14,7 @@ use crypto::hmac::Hmac;
 use crypto::mac::{Mac, MacResult};
 use crypto::sha1::Sha1;
 use hex::FromHex;
-use lando::RequestExt;
+use lando::{RequestExt, Response};
 
 mod github;
 mod metric;
@@ -75,37 +75,36 @@ fn incr_trim_fail(reason: &String, repo: &String, branch: &String) -> Option<Str
 #[cfg_attr(tarpaulin, skip)]
 gateway!(|request, _| {
     let config = envy::from_env::<Config>()?;
-    if authenticated(&request, &config.github_webhook_secret) {
-        if let Ok(Some(payload)) = request.payload::<github::Payload>() {
-            if payload.deletable() {
-                match github::delete(&config.github_token.clone(), &payload.ref_url()) {
-                    Err(e) => {
-                        for metric in incr_trim_fail(
-                            &e.to_string(),
-                            &payload.pull_request.head.repo.full_name,
-                            &payload.pull_request.head.branch,
-                        ) {
-                            println!("{}", metric);
-                        }
-                    }
-                    Ok(_) => {
-                        for metric in incr_trim(
-                            &payload.pull_request.head.repo.full_name,
-                            &payload.pull_request.head.branch,
-                        ) {
-                            println!("{}", metric);
-                        }
-                    }
-                }
-            }
-        }
-    } else {
+    if !authenticated(&request, &config.github_webhook_secret) {
         for metric in incr_auth_fail() {
             println!("{}", metric);
         }
+        return Ok(Response::builder().status(401).body(())?);
+    }
+    match request.payload::<github::Payload>() {
+        Ok(Some(ref payload)) if payload.deletable() => {
+            if let Err(e) = github::delete(&config.github_token.clone(), &payload.ref_url()) {
+                for metric in incr_trim_fail(
+                    &e.to_string(),
+                    &payload.pull_request.head.repo.full_name,
+                    &payload.pull_request.head.branch,
+                ) {
+                    println!("{}", metric);
+                }
+                return Ok(Response::builder().status(400).body(())?);
+            }
+
+            for metric in incr_trim(
+                &payload.pull_request.head.repo.full_name,
+                &payload.pull_request.head.branch,
+            ) {
+                println!("{}", metric);
+            }
+        }
+        _ => (),
     }
 
-    Ok(lando::Response::new(()))
+    Ok(Response::new(()))
 });
 
 #[cfg(test)]
