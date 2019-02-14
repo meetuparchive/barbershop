@@ -6,6 +6,9 @@ provider:
   environment:
     GITHUB_WEBHOOK_SECRET: '${env:GITHUB_WEBHOOK_SECRET}'
     GITHUB_TOKEN: '${env:GITHUB_TOKEN}'
+  stackTags:
+    'mup:owner': 'core-services'
+    'mup:productName': '${self:service}'
 plugins:
   - serverless-rust
 custom:
