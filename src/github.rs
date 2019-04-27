@@ -51,10 +51,10 @@ pub struct Repository {
 }
 
 //// https://developer.github.com/v3/git/refs/#delete-a-reference
-pub fn delete(token: &String, url: &String) -> Result<(), Error> {
+pub fn delete(token: &str, url: &str) -> Result<(), Error> {
     Client::new()
         .delete(url)
-        .basic_auth("", Some(token.clone()))
+        .basic_auth("", Some(token.to_owned()))
         .send()
         .map(|_| ())
 }

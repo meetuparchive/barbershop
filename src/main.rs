@@ -22,7 +22,7 @@ fn header<'a>(request: &'a Request, name: &str) -> Option<&'a str> {
 }
 
 /// Return true if webhook was authenticated, false otherwise
-fn authenticated(request: &Request, secret: &String) -> bool {
+fn authenticated(request: &Request, secret: &str) -> bool {
     header(request, "X-Hub-Signature")
         .and_then(|value| {
             // strip off `sha1=` and get hex bytes
@@ -36,7 +36,7 @@ fn authenticated(request: &Request, secret: &String) -> bool {
         })
 }
 
-fn incr_trim(repo: &String, branch: &String) -> Option<String> {
+fn incr_trim(repo: &str, branch: &str) -> Option<String> {
     metric::incr(
         "barbershop.trim",
         vec![format!("repo:{}", repo), format!("branch:{}", branch)],
@@ -47,7 +47,7 @@ fn incr_auth_fail() -> Option<String> {
     metric::incr("barbershop.fail", vec!["reason:invalid_authentication".into()])
 }
 
-fn incr_trim_fail(reason: &String, repo: &String, branch: &String) -> Option<String> {
+fn incr_trim_fail(reason: &str, repo: &str, branch: &str) -> Option<String> {
     metric::incr(
         "barbershop.fail",
         vec![
