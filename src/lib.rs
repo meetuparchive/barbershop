@@ -10,9 +10,11 @@ extern crate envy;
 extern crate hex;
 
 // Third party
-use crypto::hmac::Hmac;
-use crypto::mac::{Mac, MacResult};
-use crypto::sha1::Sha1;
+use crypto::{
+    hmac::Hmac,
+    mac::{Mac, MacResult},
+    sha1::Sha1,
+};
 use hex::FromHex;
 use lando::{RequestExt, Response};
 
@@ -26,10 +28,7 @@ struct Config {
 }
 
 fn header<'a>(request: &'a lando::Request, name: &str) -> Option<&'a str> {
-    request
-        .headers()
-        .get(name)
-        .and_then(|value| value.to_str().ok())
+    request.headers().get(name).and_then(|value| value.to_str().ok())
 }
 
 /// Return true if webhook was authenticated, false otherwise
@@ -55,10 +54,7 @@ fn incr_trim(repo: &String, branch: &String) -> Option<String> {
 }
 
 fn incr_auth_fail() -> Option<String> {
-    metric::incr(
-        "barbershop.fail",
-        vec!["reason:invalid_authentication".into()],
-    )
+    metric::incr("barbershop.fail", vec!["reason:invalid_authentication".into()])
 }
 
 fn incr_trim_fail(reason: &String, repo: &String, branch: &String) -> Option<String> {
@@ -114,9 +110,6 @@ mod tests {
 
     #[test]
     fn missing_header_is_authenticated() {
-        assert!(!authenticated(
-            &lando::Request::new("{}".into()),
-            &"secret".to_string()
-        ))
+        assert!(!authenticated(&lando::Request::new("{}".into()), &"secret".to_string()))
     }
 }
