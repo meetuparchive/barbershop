@@ -1,29 +1,24 @@
 service: barbershop
 provider:
   name: aws
-  runtime: python3.6
+  runtime: rust
   memorySize: 128
   environment:
     GITHUB_WEBHOOK_SECRET: '${env:GITHUB_WEBHOOK_SECRET}'
     GITHUB_TOKEN: '${env:GITHUB_TOKEN}'
   stackTags:
-    'mup:owner': 'core-services'
+    'mup:owner': 'platform-services'
     'mup:productName': '${self:service}'
+
 plugins:
   - serverless-rust
-custom:
-  rust:
-    cargoFlags: '--features lando/python3-sys'
+
 package:
   individually: true
-  exclude:
-    - ./**
+
 functions:
-  hello:
-    handler: liblambda.handler
-    package:
-      include:
-        - liblambda.so
+  barbershop:
+    handler: barbershop
     events:
       - http:
           path: '/'

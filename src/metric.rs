@@ -1,4 +1,3 @@
-// Std
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Return datadog lambda counter metric

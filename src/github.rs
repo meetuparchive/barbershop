@@ -1,5 +1,5 @@
-// Third party
 use reqwest::{Client, Error};
+use serde_derive::Deserialize;
 
 /// Pull request review payload
 ///
@@ -53,9 +53,7 @@ pub struct Repository {
 //// https://developer.github.com/v3/git/refs/#delete-a-reference
 pub fn delete(token: &String, url: &String) -> Result<(), Error> {
     Client::new()
-        .expect("failed to create client")
         .delete(url)
-        .expect("failed to parse url")
         .basic_auth("", Some(token.clone()))
         .send()
         .map(|_| ())
@@ -64,7 +62,7 @@ pub fn delete(token: &String, url: &String) -> Result<(), Error> {
 #[cfg(test)]
 mod tests {
     use super::Payload;
-    use lando::{Request, RequestExt};
+    use lambda_http::{Request, RequestExt};
 
     const OPENED: &str = include_str!("../data/opened.json");
     const CLOSED: &str = include_str!("../data/closed.json");

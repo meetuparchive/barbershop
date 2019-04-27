@@ -1,22 +1,12 @@
-#[macro_use]
-extern crate cpython;
-extern crate crypto;
-#[macro_use]
-extern crate lando;
-extern crate reqwest;
-#[macro_use]
-extern crate serde_derive;
-extern crate envy;
-extern crate hex;
-
-// Third party
 use crypto::{
     hmac::Hmac,
     mac::{Mac, MacResult},
     sha1::Sha1,
 };
 use hex::FromHex;
-use lando::{RequestExt, Response};
+use lambda_http::{lambda, IntoResponse, Request, RequestExt, Response};
+use lambda_runtime::{error::HandlerError, Context};
+use serde_derive::Deserialize;
 
 mod github;
 mod metric;
@@ -27,12 +17,12 @@ struct Config {
     github_webhook_secret: String,
 }
 
-fn header<'a>(request: &'a lando::Request, name: &str) -> Option<&'a str> {
+fn header<'a>(request: &'a Request, name: &str) -> Option<&'a str> {
     request.headers().get(name).and_then(|value| value.to_str().ok())
 }
 
 /// Return true if webhook was authenticated, false otherwise
-fn authenticated(request: &lando::Request, secret: &String) -> bool {
+fn authenticated(request: &Request, secret: &String) -> bool {
     header(request, "X-Hub-Signature")
         .and_then(|value| {
             // strip off `sha1=` and get hex bytes
@@ -68,48 +58,57 @@ fn incr_trim_fail(reason: &String, repo: &String, branch: &String) -> Option<Str
     )
 }
 
-#[cfg_attr(tarpaulin, skip)]
-gateway!(|request, _| {
-    let config = envy::from_env::<Config>()?;
+fn main() {
+    lambda!(trim)
+}
+
+fn trim(request: Request, _ctx: Context) -> Result<impl IntoResponse, HandlerError> {
+    let config = envy::from_env::<Config>().map_err(|e| HandlerError::from(e.to_string().as_str()))?;
+
     if !authenticated(&request, &config.github_webhook_secret) {
-        for metric in incr_auth_fail() {
+        if let Some(metric) = incr_auth_fail() {
             println!("{}", metric);
         }
-        return Ok(Response::builder().status(401).body(())?);
+        return Ok(Response::builder()
+            .status(401)
+            .body(())
+            .map_err(|e| HandlerError::from(e.to_string().as_str()))?);
     }
 
-    match request.payload::<github::Payload>() {
-        Ok(Some(ref payload)) if payload.deletable() => {
+    if let Ok(Some(ref payload)) = request.payload::<github::Payload>() {
+        if payload.deletable() {
             if let Err(e) = github::delete(&config.github_token.clone(), &payload.ref_url()) {
-                for metric in incr_trim_fail(
+                if let Some(metric) = incr_trim_fail(
                     &e.to_string(),
                     &payload.pull_request.head.repo.full_name,
                     &payload.pull_request.head.branch,
                 ) {
                     println!("{}", metric);
                 }
-                return Ok(Response::builder().status(400).body(())?);
+                return Ok(Response::builder()
+                    .status(400)
+                    .body(())
+                    .map_err(|e| HandlerError::from(e.to_string().as_str()))?);
             }
 
-            for metric in incr_trim(
+            if let Some(metric) = incr_trim(
                 &payload.pull_request.head.repo.full_name,
                 &payload.pull_request.head.branch,
             ) {
                 println!("{}", metric);
             }
         }
-        _ => (),
     }
 
     Ok(Response::new(()))
-});
+}
 
 #[cfg(test)]
 mod tests {
-    use super::{authenticated, lando};
+    use super::*;
 
     #[test]
     fn missing_header_is_authenticated() {
-        assert!(!authenticated(&lando::Request::new("{}".into()), &"secret".to_string()))
+        assert!(!authenticated(&Request::new("{}".into()), &"secret".to_string()))
     }
 }
