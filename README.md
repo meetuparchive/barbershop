@@ -2,6 +2,10 @@
 
 > trims a little of the top and sides of your github repository after pull request merges
 
+🚧🚧🚧
+This funcitonality is now [built into Github](https://help.github.com/en/articles/managing-the-automatic-deletion-of-branches)
+🚧🚧🚧
+
 ## 🤔 about
 
 This application is a github webhook handler for pull request events that automates the process of
