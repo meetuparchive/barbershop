@@ -72,10 +72,10 @@ after_success: |
 # are configured in travis settings
 # see https://serverless.com/framework/docs/providers/aws/guide/credentials/
 # for more information
-deploy:
-  - provider: script
-    script: npx serverless deploy --stage prod --conceal
-    skip_cleanup: true
-    on:
-      branch: master
-      condition: $TRAVIS_RUST_VERSION = stable
+# deploy:
+#   - provider: script
+#     script: npx serverless deploy --stage prod --conceal
+#     skip_cleanup: true
+#     on:
+#       branch: master
+#       condition: $TRAVIS_RUST_VERSION = stable
